@@ -1,0 +1,22 @@
+node_modules/
+.next/
+dist/
+*.log
+.DS_Store
+.env
+.env.local
+.env.production
+*.tsbuildinfo
+.vscode/
+server.log
+
+# Prisma
+apps/web/prisma/dev.db
+apps/web/prisma/dev.db-journal
+
+# Uploads
+apps/web/public/uploads/*
+!apps/web/public/uploads/.gitkeep
+
+# SSL (should not be in repo)
+infra/ssl/

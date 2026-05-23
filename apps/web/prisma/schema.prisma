@@ -1,0 +1,389 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  admin
+  moderator
+}
+
+enum LikeType {
+  like
+  dislike
+}
+
+enum SubscriptionPlan {
+  free
+  vip_monthly
+  vip_yearly
+}
+
+enum MemberRole {
+  member
+  moderator
+  admin
+}
+
+enum ConversionStatus {
+  pending
+  completed
+  failed
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id             String   @id @default(cuid())
+  name           String?
+  username       String   @unique
+  email          String?  @unique
+  emailVerified  DateTime?
+  image          String?
+  phone          String?
+  dateOfBirth    String?
+  bio            String?   @db.Text
+  gender         String?
+  role           UserRole  @default(user)
+  hashedPassword String?
+  labels         String    @default("[]")
+  coins          Int       @default(0)
+  points         Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  likes             Like[]
+  comments          Comment[]
+  watchlist         WatchlistItem[]
+  history           WatchHistory[]
+  subscription      Subscription?
+  channel           Channel?
+  chatMessages      ChatMessage[]
+  liveStreams       LiveStream[]
+  sentGifts         GiftTransaction[]      @relation("SentGifts")
+  receivedGifts     GiftTransaction[]      @relation("ReceivedGifts")
+  coinPurchases     CoinPurchase[]
+  pointTransactions PointTransaction[]
+  pointConversions  PointConversion[]
+  communities       CommunityMember[]
+  ownedCommunities  Community[]
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+}
+
+model Channel {
+  id     String @id @default(cuid())
+  name   String
+  avatar String
+  userId String @unique
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videos Video[]
+
+  @@index([name])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("") @db.Text
+  thumbnail   String
+  previewGif  String?
+  duration    Int      @default(0)
+  views       Int      @default(0)
+  hlsUrl      String
+  qualities   String   @default("{}") @db.Text
+  tags        String   @default("[]") @db.Text
+  channelId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  channel   Channel          @relation(fields: [channelId], references: [id])
+  likes     Like[]
+  comments  Comment[]
+  history   WatchHistory[]
+  watchlist WatchlistItem[]
+
+  @@index([channelId])
+  @@index([createdAt])
+  @@index([views])
+  @@index([title])
+}
+
+model Like {
+  id      String   @id @default(cuid())
+  userId  String
+  videoId String
+  type    LikeType @default(like)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([videoId, type])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  userId    String
+  videoId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, createdAt])
+  @@index([userId])
+}
+
+model WatchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  watchedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId, watchedAt])
+}
+
+model WatchlistItem {
+  id      String @id @default(cuid())
+  userId  String
+  videoId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId])
+}
+
+model Subscription {
+  id        String           @id @default(cuid())
+  userId    String           @unique
+  plan      SubscriptionPlan @default(free)
+  expiresAt DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([plan])
+  @@index([expiresAt])
+}
+
+model ChatGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  streamId    String?  @unique
+  createdAt   DateTime @default(now())
+
+  messages   ChatMessage[]
+  liveStream LiveStream?  @relation(fields: [streamId], references: [id])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  userId    String
+  groupId   String   @default("general")
+  createdAt DateTime @default(now())
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group ChatGroup @relation(fields: [groupId], references: [id])
+
+  @@index([groupId, createdAt])
+}
+
+model LiveStream {
+  id          String   @id @default(cuid())
+  title       String
+  thumbnail   String   @default("/default-thumbnail.svg")
+  userId      String
+  isLive      Boolean  @default(true)
+  viewerCount Int      @default(0)
+  streamKey   String   @default("")
+  createdAt   DateTime @default(now())
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatGroup ChatGroup?
+  gifts     GiftTransaction[]
+
+  @@index([userId])
+  @@index([isLive])
+}
+
+model GiftType {
+  id    String @id @default(cuid())
+  name  String
+  icon  String @default("🎁")
+  price Int    @default(10)
+
+  transactions GiftTransaction[]
+}
+
+model GiftTransaction {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  giftTypeId String
+  streamId   String?
+  createdAt  DateTime @default(now())
+
+  sender   User       @relation("SentGifts", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User       @relation("ReceivedGifts", fields: [receiverId], references: [id], onDelete: Cascade)
+  giftType GiftType   @relation(fields: [giftTypeId], references: [id])
+  stream   LiveStream? @relation(fields: [streamId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([streamId])
+}
+
+model CoinPackage {
+  id            String @id @default(cuid())
+  name          String
+  coins         Int
+  price         Float
+  stripePriceId String @default("")
+
+  purchases CoinPurchase[]
+}
+
+model CoinPurchase {
+  id        String   @id @default(cuid())
+  userId    String
+  packageId String
+  coins     Int
+  amount    Float
+  createdAt DateTime @default(now())
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package CoinPackage @relation(fields: [packageId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ProcessedWebhook {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  orderId     String
+  processedAt DateTime @default(now())
+
+  @@index([eventId])
+  @@index([orderId])
+}
+
+model Community {
+  id              String   @id @default(cuid())
+  name            String
+  description     String   @default("") @db.Text
+  image           String?
+  ownerId         String
+  pointsPerAction Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  owner   User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members CommunityMember[]
+
+  @@index([name])
+}
+
+model CommunityMember {
+  id          String     @id @default(cuid())
+  communityId String
+  userId      String
+  points      Int        @default(0)
+  role        MemberRole @default(member)
+  joinedAt    DateTime   @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+}
+
+model PointTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int
+  reason      String
+  referenceId String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PointConversion {
+  id            String           @id @default(cuid())
+  userId        String
+  points        Int
+  amount        Float
+  commission    Float            @default(10)
+  fee           Float
+  status        ConversionStatus @default(pending)
+  walletAddress String?
+  walletNetwork String?
+  createdAt     DateTime         @default(now())
+  completedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}

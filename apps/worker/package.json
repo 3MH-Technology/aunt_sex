@@ -1,0 +1,17 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx src/ffmpeg-worker.ts",
+    "build": "tsc",
+    "start": "node dist/ffmpeg-worker.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.572.0",
+    "@prisma/client": "^5.14.0",
+    "bullmq": "^5.7.12",
+    "ioredis": "^5.4.1",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,143 @@
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+networks:
+  public:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true
+
+services:
+  nginx:
+    image: nginx:alpine@sha256:28402db69fec7c17e179ea87882667f2e2e0e1d37c1a3e2e1e9f9d9c7c9e8d7f
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/ssl:/etc/nginx/ssl:ro
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      - web
+    networks:
+      - public
+      - internal
+    logging: *default-logging
+
+  postgres:
+    image: postgres:16-alpine@sha256:c7e6b4e6fd00f3aadbecb20f0031cb5a5ec5a45e18c57266cb3f280c9707eb27
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: auntsex
+      POSTGRES_USER: auntsex
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auntsex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine@sha256:d6f2c7c9c5b4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    logging: *default-logging
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "3000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DATABASE_URL: "postgresql://auntsex:${DB_PASSWORD}@postgres:5432/auntsex"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      NEXTAUTH_URL: ${SITE_URL:?SITE_URL is required}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
+      MAXELPAY_API_KEY: ${MAXELPAY_API_KEY:?MAXELPAY_API_KEY is required}
+      MAXELPAY_WEBHOOK_SECRET: ${MAXELPAY_WEBHOOK_SECRET:?MAXELPAY_WEBHOOK_SECRET is required}
+      SITE_URL: ${SITE_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-warn}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    networks:
+      - internal
+    logging: *default-logging
+
+  worker:
+    build:
+      context: ./apps/worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DATABASE_URL: "postgresql://auntsex:${DB_PASSWORD}@postgres:5432/auntsex"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      S3_BUCKET: ${S3_BUCKET:?S3_BUCKET is required}
+      CDN_URL: ${CDN_URL:-}
+    networks:
+      - internal
+    logging: *default-logging
+
+  pgbackup:
+    image: prodrigestivill/postgres-backup-local:16-alpine@sha256:1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: auntsex
+      POSTGRES_USER: auntsex
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      BACKUP_DIR: /backups
+      BACKUP_SUFFIX: "-auntsex"
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 3
+    volumes:
+      - pgbackups:/backups
+    networks:
+      - internal
+    logging: *default-logging
+
+volumes:
+  pgdata:
+  redisdata:
+  pgbackups:
+  nginx-cache:

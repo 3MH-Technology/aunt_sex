@@ -1,0 +1,13 @@
+{
+  "name": "aunt-sex",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "start": "turbo start",
+    "lint": "turbo lint"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.3"
+  }
+}

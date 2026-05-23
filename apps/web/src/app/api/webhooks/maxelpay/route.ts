@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { createHmac, timingSafeEqual } from "crypto";
+import { SubscriptionPlan } from "@prisma/client";
 
 const WEBHOOK_SECRET = process.env.MAXELPAY_WEBHOOK_SECRET;
 
@@ -107,8 +108,8 @@ export async function POST(req: Request) {
 
       await db.subscription.upsert({
         where: { userId: parsed.userId },
-        update: { plan, expiresAt },
-        create: { userId: parsed.userId, plan, expiresAt },
+        update: { plan: plan as SubscriptionPlan, expiresAt },
+        create: { userId: parsed.userId, plan: plan as SubscriptionPlan, expiresAt },
       });
 
       logger.info("Subscription activated via webhook", {

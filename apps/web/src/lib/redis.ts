@@ -13,6 +13,8 @@ function createRedis() {
     maxRetriesPerRequest: null,
     retryStrategy: (times) => Math.min(times * 100, 3000),
     lazyConnect: true,
+    connectTimeout: 5000,
+    enableOfflineQueue: false,
   });
   client.on("error", () => {});
   return client;

@@ -1,5 +1,8 @@
 FROM node:20-alpine AS base
 
+# Install openssl for Prisma engine
+RUN apk add --no-cache openssl
+
 # Dependencies layer
 FROM base AS deps
 WORKDIR /app
@@ -14,7 +17,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
-RUN cd apps/web && npx prisma generate && npm run build
+RUN apk add --no-cache openssl && \
+    cd apps/web && npx prisma generate && npm run build
 
 # Production runner
 FROM base AS runner

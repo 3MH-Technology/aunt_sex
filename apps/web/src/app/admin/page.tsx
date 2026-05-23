@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { Film, Users, DollarSign, TrendingUp } from "lucide-react";
+export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
   const [videoCount, userCount, viewCount, channelCount] = await Promise.all([

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { redis } from "@/lib/redis";
 import { logger } from "@/lib/logger";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const checks: Record<string, string> = {};

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { Suspense } from "react";
+export const dynamic = "force-dynamic";
 import HeroSection from "@/components/home/HeroSection";
 import TrendingNow from "@/components/home/TrendingNow";
 import RecentlyAdded from "@/components/home/RecentlyAdded";

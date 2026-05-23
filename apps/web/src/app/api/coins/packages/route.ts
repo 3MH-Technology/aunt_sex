@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { handleError } from "@/lib/api-handler";
 import { coinService } from "@/services/CoinService";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {

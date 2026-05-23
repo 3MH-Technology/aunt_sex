@@ -1,9 +1,6 @@
 app = "aunt-sex"
 primary_region = "ams"
 
-[build]
-  working_dir = "apps/web"
-
 [deploy]
   release_command = "npx prisma migrate deploy"
 

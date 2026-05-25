@@ -16,18 +16,33 @@ COPY . .
 WORKDIR /app/apps/web
 RUN npx prisma generate
 RUN npm run build
+RUN cp -r .next/static .next/standalone/.next/static
 
 FROM base AS runner
 WORKDIR /app/apps/web
-RUN apk add --no-cache curl
-COPY --from=builder /app/apps/web/.next ./.next
-COPY --from=builder /app/apps/web/public ./public
-COPY --from=builder /app/apps/web/prisma ./prisma
-COPY --from=builder /app/apps/web/package.json ./package.json
-COPY --from=builder /app/apps/web/next.config.js ./next.config.js
+RUN apk add --no-cache curl && \
+    addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Node modules
 COPY --from=deps /app/node_modules /app/node_modules
+
+# Prisma generated client
 COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
+
+# Prisma schema for migrations
+COPY --from=builder /app/apps/web/prisma ./prisma
+COPY apps/web/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# App files (standalone)
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/public ./public
+
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node /app/node_modules/.bin/next start"]
+
+USER nextjs
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["node", "server.js"]

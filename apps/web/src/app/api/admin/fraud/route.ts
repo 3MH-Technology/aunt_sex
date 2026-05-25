@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { withAuth, handleError } from "@/lib/api-handler";
 
+export const dynamic = "force-dynamic";
+
 export const GET = withAuth(
   async (req, { params }) => {
     const { searchParams } = new URL(req.url);

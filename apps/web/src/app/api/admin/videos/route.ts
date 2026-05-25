@@ -3,6 +3,8 @@ import { withAuth, handleError } from "@/lib/api-handler";
 import { videoService } from "@/services/VideoService";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export const GET = withAuth(
   async (req) => {
     const { searchParams } = new URL(req.url);

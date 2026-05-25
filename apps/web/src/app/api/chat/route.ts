@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth, withOptionalAuth, handleError } from "@/lib/api-handler";
 import { chatService } from "@/services/ChatService";
 
+export const dynamic = "force-dynamic";
+
 export const GET = withOptionalAuth(async (req, { userId }) => {
   const { searchParams } = new URL(req.url);
   const groupId = searchParams.get("groupId") || "general";

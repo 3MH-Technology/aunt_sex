@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { channelService } from "@/services/ChannelService";
 import { handleError } from "@/lib/api-handler";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }

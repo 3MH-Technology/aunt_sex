@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { withAuth, withOptionalAuth, handleError } from "@/lib/api-handler";
 import { historyService } from "@/services/HistoryService";
 
+export const dynamic = "force-dynamic";
+
 export const GET = withAuth(async (req, { userId }) => {
   const { searchParams } = new URL(req.url);
   const cursor = searchParams.get("cursor") || undefined;

@@ -4,6 +4,8 @@ import { handleError, withRateLimit } from "@/lib/api-handler";
 import { cache } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+
 const searchHandler = async (req: Request) => {
   try {
     const { searchParams } = new URL(req.url);

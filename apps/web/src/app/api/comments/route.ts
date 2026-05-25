@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { withAuth, handleError } from "@/lib/api-handler";
 import { ValidationError, NotFoundError } from "@/lib/errors";
 
+export const dynamic = "force-dynamic";
+
 export const POST = withAuth(
   async (req, { userId }) => {
     const { videoId, text } = await req.json();

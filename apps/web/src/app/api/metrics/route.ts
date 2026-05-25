@@ -3,6 +3,8 @@ import { metricsRegistry } from '@/lib/metrics';
 
 const CRON_SECRET = process.env.CRON_SECRET || process.env.PROMETHEUS_SCRAPE_SECRET;
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   const querySecret = new URL(request.url).searchParams.get('secret');

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth, handleError } from "@/lib/api-handler";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export const POST = withAuth(
   async (req, { userId }) => {
     const { videoId, type } = await req.json();

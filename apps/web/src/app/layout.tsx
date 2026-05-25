@@ -10,6 +10,7 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SITE_URL || "http://localhost:3000"),
   title: "Aunt Sex — سكس عربي ومصري | نيك وشرموطات",
   description: "سكس عربي، نيك مصري، محارم، شرموطات، طيز وكس — بث مباشر ومجاني. ادخل يا وحش واتفرج على راحتك.",
   keywords: "سكس, سكس مصري, نيك, شرموطة, طيز, كس, زبر, محارم, سحاق, سكس عربي, بث مباشر",

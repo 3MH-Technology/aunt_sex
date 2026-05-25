@@ -19,32 +19,17 @@ RUN npm run build
 
 FROM base AS runner
 WORKDIR /app/apps/web
-RUN apk add --no-cache curl && \
-    addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN apk add --no-cache curl
 
-# Node modules
-COPY --from=deps /app/node_modules /app/node_modules
-
-# Prisma generated client
-COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
-
-# Prisma schema for migrations
-COPY --from=builder /app/apps/web/prisma ./prisma
-COPY apps/web/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# App files (standalone + necessary .next artifacts)
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/BUILD_ID ./.next/BUILD_ID
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/server ./.next/server
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
+COPY --from=builder /app/apps/web/.next ./.next
 COPY --from=builder /app/apps/web/public ./public
+COPY --from=builder /app/apps/web/prisma ./prisma
+COPY --from=builder /app/apps/web/package.json ./package.json
+COPY --from=deps /app/node_modules /app/node_modules
+COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
 
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-USER nextjs
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy 2>&1; echo '--- Starting Next.js ---'; node /app/node_modules/.bin/next start"]

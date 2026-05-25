@@ -1,9 +1,12 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 
 const CDN_DOMAIN = (process.env.CDN_URL || "https://cdn.auntsex.tv").replace(/^https?:\/\//, "").replace(/\/$/, "");
 
 const nextConfig = {
   output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,

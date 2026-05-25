@@ -3,13 +3,17 @@ RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
+FROM base AS deps
 COPY package.json package-lock.json* ./
-COPY apps/web/package.json apps/web/package-lock.json* ./apps/web/
+COPY apps/web/package.json apps/web/package.json
+COPY apps/web/package-lock.json* apps/web/package-lock.json
 
 RUN npm ci
-RUN cd apps/web && npm ci
 
 FROM base AS builder
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 WORKDIR /app/apps/web
@@ -17,26 +21,23 @@ WORKDIR /app/apps/web
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:20-alpine AS runner
-RUN apk add --no-cache openssl libc6-compat curl
-
+FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
+RUN apk add --no-cache curl \
+  && addgroup -S nodejs \
+  && adduser -S nextjs -G nodejs
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=builder /app/apps/web/.next ./apps/web/.next
-COPY --from=builder /app/apps/web/public ./apps/web/public
-COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
-COPY --from=builder /app/apps/web/prisma ./apps/web/prisma
-COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/apps/web/next.config.js ./apps/web/next.config.js
+COPY --from=builder /app/apps/web/public ./public
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./.next/static
+COPY --from=builder /app/apps/web/prisma ./prisma
 
-WORKDIR /app/apps/web
+USER nextjs
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "./node_modules/.bin/next start -H 0.0.0.0 -p 3000"]
+ENV NODE_ENV=production
+ENV PORT=3000
+
+CMD ["node", "server.js"]

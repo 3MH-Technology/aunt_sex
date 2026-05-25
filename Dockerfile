@@ -24,10 +24,8 @@ COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./.next/static
 COPY --from=builder /app/apps/web/public ./public
 COPY --from=builder /app/apps/web/prisma ./prisma
-COPY --from=builder /app/apps/web/package.json ./package.json
-COPY --from=deps /app/node_modules /app/node_modules
-COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["node", "apps/web/server.js"]

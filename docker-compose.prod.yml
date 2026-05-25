@@ -11,7 +11,6 @@ networks:
     driver: bridge
   internal:
     driver: bridge
-    internal: true
 
 services:
   nginx:
@@ -67,8 +66,8 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     expose:
       - "3000"
@@ -94,8 +93,8 @@ services:
 
   worker:
     build:
-      context: ./apps/worker
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/worker/Dockerfile
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }

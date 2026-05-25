@@ -9,7 +9,6 @@ x-logging: &default-logging
 networks:
   internal:
     driver: bridge
-    internal: true
 
 services:
   postgres:
@@ -51,8 +50,8 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
@@ -77,8 +76,8 @@ services:
 
   worker:
     build:
-      context: ./apps/worker
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/worker/Dockerfile
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
@@ -91,6 +90,8 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-auntsex-videos}
+      CDN_URL: ${CDN_URL:-}
     networks:
       - internal
     logging: *default-logging

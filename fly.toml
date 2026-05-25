@@ -11,6 +11,10 @@ primary_region = 'ams'
 [deploy]
   release_command = 'npx prisma migrate deploy'
 
+[env]
+  NODE_ENV = "production"
+  LOG_LEVEL = "info"
+
 [http_service]
   internal_port = 3000
   force_https = true
@@ -21,5 +25,16 @@ primary_region = 'ams'
 
 [[vm]]
   cpu_kind = 'shared'
-  cpus = 1
-  memory_mb = 512
+  cpus = 2
+  memory_mb = 2048
+
+[[services]]
+  processes = ['worker']
+  internal_port = 3000
+  min_machines_running = 0
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+
+  [[services.ports]]
+    port = 3000
+    handlers = []

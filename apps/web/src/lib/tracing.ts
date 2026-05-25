@@ -3,7 +3,6 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { trace, context, SpanStatusCode, Span, SpanKind } from '@opentelemetry/api';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
@@ -18,9 +17,9 @@ export function initTracing(): NodeSDK {
   }
 
   const resource = new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: process.env.SERVICE_NAME || 'owntube-api',
-    [SemanticResourceAttributes.SERVICE_VERSION]: process.env.APP_VERSION || '1.0.0',
-    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
+    'service.name': process.env.SERVICE_NAME || 'owntube-api',
+    'service.version': process.env.APP_VERSION || '1.0.0',
+    'deployment.environment': process.env.NODE_ENV || 'development',
     'service.instance.id': process.env.HOSTNAME || process.env.POD_NAME || 'local',
   });
 

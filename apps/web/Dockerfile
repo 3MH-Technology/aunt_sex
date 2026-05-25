@@ -1,9 +1,13 @@
 FROM node:20-alpine AS base
+RUN apk add --no-cache openssl libc6-compat
 
 # Dependencies layer
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY apps/worker/package.json apps/worker/package.json
+COPY packages/shared/package.json packages/shared/package.json
 RUN npm ci
 
 # Builder layer
@@ -11,30 +15,31 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+WORKDIR /app/apps/web
 RUN npx prisma generate
 RUN npm run build
 
 # Production runner
 FROM base AS runner
-WORKDIR /app
+WORKDIR /app/apps/web
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Prisma migration & seed files
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY package.json ./
+COPY --from=builder /app/apps/web/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
+COPY --from=builder /app/apps/web/node_modules/@prisma ./node_modules/@prisma
+COPY apps/web/package.json ./
 
-# Entrypoint from build context
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# Entrypoint
+COPY apps/web/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # App files
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
+COPY --from=builder /app/apps/web/public ./public
 
 USER nextjs
 EXPOSE 3000

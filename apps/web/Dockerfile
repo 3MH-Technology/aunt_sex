@@ -26,10 +26,13 @@ WORKDIR /app/apps/web
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+# Node modules
+COPY --from=deps /app/node_modules /app/node_modules
+
 # Prisma migration & seed files
 COPY --from=builder /app/apps/web/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
-COPY --from=builder /app/apps/web/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/apps/web/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY apps/web/package.json ./
 
 # Entrypoint

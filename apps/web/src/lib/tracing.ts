@@ -68,6 +68,7 @@ export function initTracing(): NodeSDK {
         '@opentelemetry/instrumentation-mongodb': { enabled: false },
         '@opentelemetry/instrumentation-mysql': { enabled: false },
         '@opentelemetry/instrumentation-pg': { enabled: false },
+        '@opentelemetry/instrumentation-winston': { enabled: false },
       }),
     ],
   // OpenTelemetry packages have duplicate @types across nested deps

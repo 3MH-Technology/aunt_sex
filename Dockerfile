@@ -30,4 +30,4 @@ COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
-CMD ["node", "/app/node_modules/.bin/next", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node /app/node_modules/.bin/next start"]

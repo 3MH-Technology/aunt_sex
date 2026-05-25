@@ -6,11 +6,7 @@ import { Users, Crown, User, Plus, Check, Hash, Star, Coins } from "lucide-react
 import Image from "next/image";
 import Link from "next/link";
 
-const LABEL_COLORS: Record<string, string> = {
-  "فحل": "bg-green-600/30 text-green-400 border-green-500/30",
-  "سالب": "bg-pink-600/30 text-pink-400 border-pink-500/30",
-  "ديوث": "bg-yellow-600/30 text-yellow-400 border-yellow-500/30",
-};
+import { USER_LABEL_COLORS as LABEL_COLORS } from "@/config/user-labels";
 
 export default function CommunityPage() {
   const { id } = useParams<{ id: string }>();

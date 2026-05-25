@@ -88,11 +88,16 @@ export async function DELETE(
     if (!isOwner && !isAdmin) throw new ForbiddenError();
 
     const uploadDir = join(process.cwd(), "public", "uploads");
-    const videoFile = video.hlsUrl?.replace("/uploads/", "");
-    const thumbFile = video.thumbnail?.replace("/uploads/", "");
 
-    if (videoFile) await unlink(join(uploadDir, videoFile)).catch(() => {});
-    if (thumbFile) await unlink(join(uploadDir, thumbFile)).catch(() => {});
+    const deleteLocal = async (url: string) => {
+      if (url.startsWith("/uploads/")) {
+        const relativePath = url.replace("/uploads/", "");
+        await unlink(join(uploadDir, relativePath)).catch(() => {});
+      }
+    };
+
+    await deleteLocal(video.hlsUrl);
+    await deleteLocal(video.thumbnail);
 
     await db.video.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });

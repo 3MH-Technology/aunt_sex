@@ -15,7 +15,16 @@ class MonitoringService {
   private enabled = !!process.env.SENTRY_DSN;
 
   captureError(payload: ErrorPayload) {
-    const { message, code, stack, userId, route, method, severity = "medium", metadata } = payload;
+    const {
+      message,
+      code,
+      stack,
+      userId,
+      route,
+      method,
+      severity = "medium",
+      metadata,
+    } = payload;
 
     logger.error(`[${severity.toUpperCase()}] ${code || "ERROR"}: ${message}`, {
       userId,

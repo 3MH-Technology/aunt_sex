@@ -47,55 +47,91 @@ export default function LivePage() {
   };
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Radio className="w-6 h-6 text-brand-accent" /> البث المباشر
-        </h1>
+        <div>
+          <h1 className="text-2xl font-extrabold flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center">
+              <Radio className="w-5 h-5 text-red-400 animate-pulse" />
+            </div>
+            لايف سكس — شوفني وأنا حية
+          </h1>
+          <p className="text-gray-500 text-xs mt-1 mr-11">شوف نيك لايف أو ابدأ بثك وخلّي الزباين يتجننوا</p>
+        </div>
         {isAuthenticated && (
-          <button onClick={() => setShowCreate(!showCreate)} className="glow-button flex items-center gap-2 text-sm px-4 py-2">
-            <Plus className="w-4 h-4" /> بدء بث
+          <button onClick={() => setShowCreate(!showCreate)} className="glow-button flex items-center gap-2 text-sm px-5 py-2.5">
+            <Plus className="w-4 h-4" /> ابدأ لايف دلوقتي
           </button>
         )}
       </div>
 
       {showCreate && (
-        <div className="card-adult p-4 mb-6 flex gap-3">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان البث..." className="input-field flex-1" />
-          <button onClick={handleCreate} disabled={creating || !title.trim()} className="glow-button px-6 disabled:opacity-50">
-            {creating ? "..." : "ابدأ"}
-          </button>
-          <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+        <div className="card-adult p-5 mb-6">
+          <h3 className="font-extrabold mb-3 neon-text text-base">ابدأ لايف… وورّيهم طيزك أو نيكك</h3>
+          <div className="flex gap-3">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="عنوان يهيجهم… سكس، نيك، شرموطة…"
+              className="input-field flex-1"
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            />
+            <button onClick={handleCreate} disabled={creating || !title.trim()} className="glow-button px-6 disabled:opacity-50 flex items-center gap-2">
+              {creating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Radio className="w-4 h-4" />}
+              {creating ? "جاري..." : "يلا ابدأ النيك"}
+            </button>
+            <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-white transition p-2 rounded-xl hover:bg-brand-hover">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       )}
 
       {streams.length === 0 ? (
-        <div className="text-center py-20">
-          <Radio className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">لا يوجد بث مباشر الآن</p>
-          <p className="text-gray-600 text-sm mt-1">كن أول من يبدأ البث!</p>
+        <div className="text-center py-24 animate-fade-in">
+          <div className="w-20 h-20 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-5">
+            <Radio className="w-10 h-10 text-red-500/50 animate-pulse" />
+          </div>
+          <p className="text-gray-300 font-bold text-lg">مفيش بث للحين…</p>
+          <p className="text-gray-600 text-sm mt-1.5">كن أول واحد يفتح لايف نيك ويحرق الشاشة!</p>
+          {isAuthenticated && (
+            <button onClick={() => setShowCreate(true)} className="glow-button mt-6 inline-flex items-center gap-2 px-6 py-2.5">
+              <Plus className="w-4 h-4" /> ابدأ لايف سكس دلوقتي
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {streams.map((stream) => (
             <Link key={stream.id} href={`/live/${stream.id}`} className="video-card group block">
-              <div className="relative aspect-video bg-brand-panel overflow-hidden">
+              <div className="relative aspect-video bg-gradient-to-br from-brand-panel to-brand-dark overflow-hidden">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Radio className="w-12 h-12 text-gray-700" />
+                  <div className="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center">
+                    <Radio className="w-8 h-8 text-red-400/60" />
+                  </div>
                 </div>
-                <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1 animate-pulse">
-                  <span className="w-2 h-2 bg-white rounded-full" /> LIVE
+                {/* LIVE Badge */}
+                <div className="absolute top-2 right-2 bg-gradient-to-r from-red-600 to-rose-500 text-white text-[10px] px-2.5 py-1 rounded-full font-extrabold flex items-center gap-1.5 shadow-glow tracking-wider">
+                  <span className="w-2 h-2 bg-white rounded-full animate-ping" />
+                  LIVE
                 </div>
-                <div className="absolute top-2 left-2 bg-black/80 text-white text-xs px-2 py-0.5 rounded flex items-center gap-1">
-                  <Eye className="w-3 h-3" /> {stream.viewerCount}
+                {/* عداد المشاهدين */}
+                <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-white/10">
+                  <Eye className="w-3 h-3 text-brand-accent" /> {stream.viewerCount.toLocaleString()}
                 </div>
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                  <Play className="w-12 h-12 text-white" />
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-brand-accent/80 flex items-center justify-center shadow-glow scale-90 group-hover:scale-100 transition-all duration-300">
+                    <Play className="w-7 h-7 text-white fill-white" />
+                  </div>
                 </div>
               </div>
-              <div className="p-3">
-                <h3 className="font-semibold text-sm line-clamp-2">{stream.title}</h3>
-                <p className="text-xs text-gray-500 mt-1">{stream.user.name}</p>
+              <div className="p-3.5">
+                <h3 className="font-bold text-sm line-clamp-2 group-hover:text-brand-accent transition-colors">{stream.title}</h3>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="w-5 h-5 rounded-full bg-brand-accent/20 flex items-center justify-center text-[10px] font-bold text-brand-accent">{stream.user.name?.[0]}</div>
+                  <p className="text-xs text-gray-500">{stream.user.name}</p>
+                </div>
               </div>
             </Link>
           ))}

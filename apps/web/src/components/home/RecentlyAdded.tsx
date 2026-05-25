@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 
 export default async function RecentlyAdded() {
   const videos = await db.video.findMany({
+    where: { status: "APPROVED" },
     orderBy: { createdAt: "desc" },
     take: 12,
     include: {

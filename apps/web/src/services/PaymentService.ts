@@ -2,10 +2,11 @@ import { BaseService } from "./BaseService";
 import { stripe } from "@/lib/stripe";
 import { createPaymentSession as maxelpayCreateSession } from "@/lib/maxelpay";
 import { NotFoundError, ValidationError } from "@/lib/errors";
+import { SubscriptionPlan } from "@prisma/client";
 
 const PLANS = {
-  "VIP شهري": { amount: 9.99, label: "VIP شهري", days: 30 },
-  "VIP سنوي": { amount: 99.99, label: "VIP سنوي", days: 365 },
+  "VIP شهري": { amount: 9.99, label: "VIP شهري", days: 30, enum: "vip_monthly" as SubscriptionPlan, key: "monthly" },
+  "VIP سنوي": { amount: 99.99, label: "VIP سنوي", days: 365, enum: "vip_yearly" as SubscriptionPlan, key: "yearly" },
 } as const;
 
 type PlanKey = keyof typeof PLANS;
@@ -31,7 +32,7 @@ export class PaymentService extends BaseService {
       ],
       success_url: `${process.env.SITE_URL}/profile?upgrade=success`,
       cancel_url: `${process.env.SITE_URL}/pricing`,
-      metadata: { userId, plan },
+      metadata: { userId, plan: planConfig.enum },
     });
 
     return { url: session.url };
@@ -41,7 +42,7 @@ export class PaymentService extends BaseService {
     const planConfig = PLANS[plan as PlanKey];
     if (!planConfig) throw new ValidationError("الخطة غير صالحة");
 
-    const orderId = `order_${userId}_${Date.now()}`;
+    const orderId = `order_${userId}_${planConfig.key}_${Date.now()}`;
     const siteUrl = process.env.SITE_URL || "http://localhost:3000";
 
     const result = await maxelpayCreateSession({
@@ -67,8 +68,8 @@ export class PaymentService extends BaseService {
 
     await this.db.subscription.upsert({
       where: { userId },
-      update: { plan: plan as any, expiresAt },
-      create: { userId, plan: plan as any, expiresAt },
+      update: { plan: planConfig.enum, expiresAt },
+      create: { userId, plan: planConfig.enum, expiresAt },
     });
   }
 

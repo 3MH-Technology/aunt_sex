@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TopRatedPage() {
   const videos = await db.video.findMany({
+    where: { status: "APPROVED" },
     orderBy: { likes: { _count: "desc" } },
     take: 24,
     include: { channel: true },

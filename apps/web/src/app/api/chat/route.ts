@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth, handleError } from "@/lib/api-handler";
+import { withAuth, withOptionalAuth, handleError } from "@/lib/api-handler";
 import { chatService } from "@/services/ChatService";
 
-export const GET = withAuth(async (req, { userId }) => {
+export const GET = withOptionalAuth(async (req, { userId }) => {
   const { searchParams } = new URL(req.url);
   const groupId = searchParams.get("groupId") || "general";
   const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);

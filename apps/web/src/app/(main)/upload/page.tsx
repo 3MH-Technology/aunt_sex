@@ -127,7 +127,7 @@ export default function UploadVideoPage() {
           <div className="relative">
             <Tag className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input type="text" value={tags} onChange={(e) => setTags(e.target.value)}
-              placeholder="سكس, نيك, محارم, عربي, مصري (مفصولة بفواصل)" className="input-field pr-10" />
+              placeholder="سكس, نيك, طيز, شرموطة, محارم, مصري (مفصولة بفواصل)" className="input-field pr-10" />
           </div>
         </div>
       </div>

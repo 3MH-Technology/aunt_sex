@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 
 export default async function TopRated() {
   const videos = await db.video.findMany({
+    where: { status: "APPROVED" },
     orderBy: { likes: { _count: "desc" } },
     take: 12,
     include: {

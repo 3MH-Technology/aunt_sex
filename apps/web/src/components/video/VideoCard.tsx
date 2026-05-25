@@ -35,7 +35,7 @@ export default function VideoCard({ video }: VideoCardProps) {
   const badge = video.views > 50000
     ? <span className="badge-exclusive">الأكثر مشاهدة</span>
     : video.views > 10000
-    ? <span className="badge-hot">ساخن</span>
+    ? <span className="badge-hot">نار</span>
     : null;
 
   return (

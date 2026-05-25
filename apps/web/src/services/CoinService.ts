@@ -1,6 +1,11 @@
 import { BaseService } from "./BaseService";
 import { NotFoundError } from "@/lib/errors";
 import { createPaymentSession } from "@/lib/maxelpay";
+import { creditCoins, getBalance } from "@/lib/coingate";
+import { CoinLedgerReason } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+
+type TxClient = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
 export class CoinService extends BaseService {
   async getPackages() {
@@ -10,12 +15,8 @@ export class CoinService extends BaseService {
   }
 
   async getBalance(userId: string) {
-    const user = await this.db.user.findUnique({
-      where: { id: userId },
-      select: { coins: true },
-    });
-    if (!user) throw new NotFoundError("المستخدم غير موجود");
-    return { coins: user.coins };
+    const coins = await getBalance(userId);
+    return { coins };
   }
 
   async createMaxelPaySession(userId: string, packageId: string) {
@@ -42,27 +43,22 @@ export class CoinService extends BaseService {
     };
   }
 
-  async purchaseCoins(userId: string, packageId: string, _paymentMethod: string) {
-    const pkg = await this.db.coinPackage.findUnique({
-      where: { id: packageId },
-    });
-    if (!pkg) throw new NotFoundError("الباقة غير موجودة");
+  async purchaseCoins(userId: string, packageId: string, _paymentMethod: string, tx?: TxClient) {
+    const perform = async (client: TxClient) => {
+      const pkg = await client.coinPackage.findUnique({ where: { id: packageId } });
+      if (!pkg) throw new NotFoundError("الباقة غير موجودة");
 
-    await this.db.coinPurchase.create({
-      data: {
-        userId,
-        packageId,
-        coins: pkg.coins,
-        amount: pkg.price,
-      },
-    });
+      await client.coinPurchase.create({
+        data: { userId, packageId, coins: pkg.coins, amount: pkg.price },
+      });
 
-    await this.db.user.update({
-      where: { id: userId },
-      data: { coins: { increment: pkg.coins } },
-    });
+      await creditCoins(client, userId, pkg.coins, CoinLedgerReason.COIN_PURCHASE, packageId, { packageName: pkg.name });
 
-    return { coins: pkg.coins, balance: { increment: pkg.coins } };
+      return { coins: pkg.coins, balance: { increment: pkg.coins } };
+    };
+
+    if (tx) return perform(tx);
+    return this.db.$transaction(perform, { isolationLevel: "ReadCommitted" });
   }
 }
 

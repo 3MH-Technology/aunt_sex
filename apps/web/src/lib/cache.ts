@@ -25,8 +25,19 @@ export const cache = {
 
   async delPattern(pattern: string): Promise<void> {
     try {
-      const keys = await redis.keys(pattern);
-      if (keys.length > 0) await redis.del(...keys);
+      let cursor = "0";
+      do {
+        const [nextCursor, ...keySets] = await redis.scan(cursor, "MATCH", pattern, "COUNT", 100);
+        cursor = nextCursor;
+        const keys = keySets.flat();
+        if (keys.length > 0) {
+          const pipeline = redis.pipeline();
+          for (const key of keys) {
+            pipeline.del(key);
+          }
+          await pipeline.exec();
+        }
+      } while (cursor !== "0");
     } catch {}
   },
 };

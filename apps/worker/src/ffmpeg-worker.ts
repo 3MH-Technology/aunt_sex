@@ -1,7 +1,8 @@
 import { Worker } from "bullmq";
 import { spawn } from "child_process";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, CoinLedgerReason, Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -147,6 +148,45 @@ const worker = new Worker(
   }
 );
 
-worker.on("failed", (job, err) => {
+worker.on("failed", async (job, err) => {
   console.error(`Job ${job?.id} failed:`, err.message);
+
+  if (!job) return;
+  if (job.attemptsMade < (job.opts.attempts || 1)) return;
+
+  const { userId, coinDeductionKey, videoId } = job.data;
+  if (userId && coinDeductionKey) {
+    try {
+      await db.$transaction(async (tx: Prisma.TransactionClient) => {
+        const balance = await tx.coinBalance.findUnique({ where: { userId } });
+        if (!balance) return;
+
+        const deduction = await tx.coinLedgerEntry.findUnique({ where: { id: coinDeductionKey } });
+        if (!deduction) return;
+        const cost = Math.abs(deduction.amount);
+
+        await tx.coinBalance.updateMany({
+          where: { userId, version: balance.version },
+          data: { amount: { increment: cost }, version: { increment: 1 } },
+        });
+
+        await tx.coinLedgerEntry.create({
+          data: {
+            id: randomUUID(),
+            userId,
+            amount: cost,
+            balanceBefore: balance.amount,
+            balanceAfter: balance.amount + cost,
+            reason: CoinLedgerReason.REVERSAL,
+            referenceId: coinDeductionKey,
+            metadata: JSON.stringify({ videoId, jobId: job?.id, reason: err.message }),
+          },
+        });
+
+        console.log(`Reversed ${cost} coins for user ${userId} (deduction ${coinDeductionKey})`);
+      }, { isolationLevel: "ReadCommitted" });
+    } catch (reversalErr) {
+      console.error(`Failed to reverse coins for user ${userId}:`, reversalErr);
+    }
+  }
 });

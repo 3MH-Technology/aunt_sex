@@ -1,0 +1,107 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "Fraud Operations",
+  "uid": "fraud-operations",
+  "tags": ["owntube", "fraud"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "title": "Signals/hour by Type and Severity",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(fraud_signals_total[1h])) by (type, severity)",
+          "legendFormat": "{{type}} - {{severity}}"
+        }
+      ],
+      "stacking": { "mode": "normal" },
+      "fillOpacity": 50,
+      "fieldConfig": {
+        "defaults": { "unit": "sig/h" }
+      }
+    },
+    {
+      "title": "Active Holds (Total Frozen Coins)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(fraud_holds_active) by (reason)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none" }
+      }
+    },
+    {
+      "title": "Graph Cycles Detected",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(fraud_signals_total{type=\"CIRCULAR_GIFT_PATTERN\"}[1h])",
+          "legendFormat": "cycles"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "cph" }
+      }
+    },
+    {
+      "title": "Velocity Blocks",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(fraud_signals_total{type=\"VELOCITY_EXCEEDED\"}[5m])",
+          "legendFormat": "blocks"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "blk/m" }
+      }
+    },
+    {
+      "title": "Admin Review Queue Depth",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "targets": [
+        {
+          "expr": "fraud_signals_total - fraud_signals_total{reviewed=\"true\"}",
+          "legendFormat": "unreviewed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none" }
+      }
+    },
+    {
+      "title": "Review SLA (% Reviewed < 24h)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(fraud_signals_total{reviewed=\"true\"}[24h])) / sum(rate(fraud_signals_total[24h])) * 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 80 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

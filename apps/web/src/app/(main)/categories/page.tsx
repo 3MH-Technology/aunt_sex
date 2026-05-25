@@ -21,8 +21,8 @@ export default async function CategoriesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2 flex items-center gap-2"><Hash className="w-6 h-6 text-brand-accent" /> التصنيفات الإباحية</h1>
-      <p className="text-gray-500 text-sm mb-6">تصفح المحتوى حسب الفئة التي تثيرك</p>
+      <h1 className="text-2xl font-bold mb-2 flex items-center gap-2"><Hash className="w-6 h-6 text-brand-accent" /> أقسام السكس</h1>
+      <p className="text-gray-500 text-sm mb-6">اختار اللي هتفرك عليه — نيك، طيز، محارم، وكل حاجة</p>
       {categories.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {categories.map(([tag, count]) => (

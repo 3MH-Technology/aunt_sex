@@ -1,5 +1,5 @@
 import { BaseService } from "./BaseService";
-import { Video, Prisma } from "@prisma/client";
+import { Video, Prisma, VideoStatus } from "@prisma/client";
 import { cache } from "@/lib/cache";
 import { ServiceError } from "@/lib/errors";
 
@@ -9,19 +9,24 @@ export class VideoService extends BaseService {
     limit?: number;
     channelId?: string;
     orderBy?: Prisma.VideoOrderByWithRelationInput;
+    includePending?: boolean;
   }): Promise<Video[]> {
-    const { page = 1, limit = 12, channelId, orderBy = { createdAt: "desc" } } = params;
+    const { page = 1, limit = 12, channelId, orderBy = { createdAt: "desc" }, includePending = false } = params;
     const skip = (page - 1) * limit;
 
     const cacheKey = `videos:list:${JSON.stringify(params)}`;
     const cached = await cache.get(cacheKey);
     if (cached) return JSON.parse(cached);
 
+    const where: Prisma.VideoWhereInput = {};
+    if (channelId) where.channelId = channelId;
+    if (!includePending) where.status = VideoStatus.APPROVED;
+
     const videos = await this.db.video.findMany({
       skip,
       take: Math.min(limit, 50),
       orderBy,
-      where: channelId ? { channelId } : undefined,
+      where,
       include: { channel: { select: { id: true, name: true, avatar: true, userId: true } } },
     });
 
@@ -49,13 +54,39 @@ export class VideoService extends BaseService {
   async search(query: string): Promise<Video[]> {
     return this.db.video.findMany({
       where: {
+        status: VideoStatus.APPROVED,
         OR: [
           { title: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
           { tags: { contains: query } },
         ],
       },
       take: 20,
       include: { channel: { select: { id: true, name: true, avatar: true, userId: true } } },
+    });
+  }
+
+  async findPending() {
+    return this.db.video.findMany({
+      where: { status: VideoStatus.PENDING },
+      orderBy: { createdAt: "desc" },
+      include: {
+        channel: { select: { id: true, name: true, avatar: true, userId: true } },
+      },
+    });
+  }
+
+  async approve(id: string, adminId: string) {
+    return this.db.video.update({
+      where: { id },
+      data: { status: VideoStatus.APPROVED, approvedAt: new Date(), approvedBy: adminId },
+    });
+  }
+
+  async reject(id: string, adminId: string) {
+    return this.db.video.update({
+      where: { id },
+      data: { status: VideoStatus.REJECTED, approvedAt: new Date(), approvedBy: adminId },
     });
   }
 

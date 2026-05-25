@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+
+const CDN_DOMAIN = (process.env.CDN_URL || "https://cdn.auntsex.tv").replace(/^https?:\/\//, "").replace(/\/$/, "");
+
 const nextConfig = {
   output: "standalone",
   compress: true,
@@ -6,7 +9,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "cdn.auntsex.tv" },
+      { protocol: "https", hostname: CDN_DOMAIN },
     ],
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 86400,
@@ -24,7 +27,7 @@ const nextConfig = {
         },
         {
           key: "Content-Security-Policy",
-          value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.auntsex.tv; media-src 'self' https://cdn.auntsex.tv; connect-src 'self'; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+          value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://${CDN_DOMAIN}; media-src 'self' https://${CDN_DOMAIN}; connect-src 'self'; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`,
         },
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         { key: "Cross-Origin-Resource-Policy", value: "same-origin" },

@@ -1,48 +1,31 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { NextResponse } from "next/server";
 import { withAuth, handleError } from "@/lib/api-handler";
+import { db } from "@/lib/db";
 
-export const GET = withAuth(
-  async (req, { params }) => {
-    const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
+export const GET = withAuth(async () => {
+  const users = await db.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true, name: true, username: true, email: true,
+      role: true, coins: true, createdAt: true,
+      _count: { select: { liveStreams: true, coinPurchases: true } },
+    },
+  });
+  return NextResponse.json(users);
+}, { requireAdmin: true });
 
-    const [users, total] = await Promise.all([
-      db.user.findMany({
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          email: true,
-          role: true,
-          coins: true,
-          points: true,
-          createdAt: true,
-          _count: { select: { comments: true, likes: true } },
-        },
-      }),
-      db.user.count(),
-    ]);
-
-    return NextResponse.json({ users, total, page, limit });
-  },
-  { requireAdmin: true }
-);
-
-export const PATCH = withAuth(
-  async (req, { params }) => {
-    const { id, role, coins, points } = await req.json();
-    const data: Record<string, unknown> = {};
-    if (role) data.role = role;
-    if (coins !== undefined) data.coins = coins;
-    if (points !== undefined) data.points = points;
-
-    await db.user.update({ where: { id }, data });
-    return NextResponse.json({ success: true });
-  },
-  { requireAdmin: true }
-);
+export const PATCH = withAuth(async (req) => {
+  const { userId, role } = await req.json();
+  if (!userId || !role) {
+    return NextResponse.json({ error: "userId و role مطلوبان" }, { status: 400 });
+  }
+  if (!["user", "admin", "moderator", "banned"].includes(role)) {
+    return NextResponse.json({ error: "دور غير صالح" }, { status: 400 });
+  }
+  const user = await db.user.update({
+    where: { id: userId },
+    data: { role },
+    select: { id: true, name: true, username: true, role: true },
+  });
+  return NextResponse.json(user);
+}, { requireAdmin: true });

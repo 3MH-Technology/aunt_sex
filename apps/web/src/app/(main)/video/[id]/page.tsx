@@ -36,7 +36,7 @@ export default async function VideoPage({
     where: { id: params.id },
     include: { channel: true, comments: { include: { user: true }, orderBy: { createdAt: "desc" } } },
   });
-  if (!video) notFound();
+  if (!video || video.status !== "APPROVED") notFound();
 
   const recommended = await getRecommendedVideos(null, params.id);
 
@@ -55,7 +55,8 @@ export default async function VideoPage({
             <span className="text-gray-400 text-sm">
               {video.views.toLocaleString()} مشاهدة
             </span>
-            <span className="badge-hot">ساخن</span>
+            {video.views > 10000 && <span className="badge-hot">نار</span>}
+            {Date.now() - new Date(video.createdAt).getTime() < 86400000 && <span className="badge-exclusive">جديد</span>}
             <VideoActions
               videoId={video.id}
               initialLikes={0}

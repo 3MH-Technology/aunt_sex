@@ -1,35 +1,167 @@
-const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const;
-type LogLevel = keyof typeof LOG_LEVELS;
+import pino from 'pino';
+import { AsyncLocalStorage } from 'async_hooks';
 
-const currentLevel: LogLevel =
-  (process.env.LOG_LEVEL as LogLevel) || "info";
+const asyncLocalStorage = new AsyncLocalStorage<{
+  requestId: string;
+  userId?: string;
+  traceId?: string;
+}>();
 
-function serializeMeta(meta?: Record<string, unknown>): string {
-  if (!meta || Object.keys(meta).length === 0) return "";
-  try {
-    return ` ${JSON.stringify(meta)}`;
-  } catch {
-    return "";
-  }
+export interface LogContext {
+  requestId: string;
+  userId?: string;
+  traceId?: string;
+  service?: string;
+  file?: string;
+  line?: number;
+  [key: string]: unknown;
 }
 
-function log(level: LogLevel, message: string, meta?: Record<string, unknown>) {
-  if (LOG_LEVELS[level] < LOG_LEVELS[currentLevel]) return;
-  const timestamp = new Date().toISOString();
-  const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
-  const line = `${prefix} ${message}${serializeMeta(meta)}`;
-  if (level === "error") {
-    console.error(line);
-  } else if (level === "warn") {
-    console.warn(line);
-  } else {
-    console.log(line);
-  }
+export function getLogContext(): LogContext | undefined {
+  return asyncLocalStorage.getStore();
 }
 
-export const logger = {
-  debug: (msg: string, meta?: Record<string, unknown>) => log("debug", msg, meta),
-  info: (msg: string, meta?: Record<string, unknown>) => log("info", msg, meta),
-  warn: (msg: string, meta?: Record<string, unknown>) => log("warn", msg, meta),
-  error: (msg: string, meta?: Record<string, unknown>) => log("error", msg, meta),
+export function runWithContext<T>(
+  context: LogContext,
+  fn: () => T
+): T {
+  return asyncLocalStorage.run(context, fn);
+}
+
+function createPinoLogger() {
+  const baseLogger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    formatters: {
+      level: (label) => ({ level: label }),
+      bindings: () => ({}),
+    },
+    timestamp: () => `,"time":"${new Date().toISOString()}"`,
+  });
+
+  return baseLogger;
+}
+
+const pinoLogger = createPinoLogger();
+
+function formatMessage(
+  message: string,
+  context?: LogContext
+): { message: string; context: Record<string, unknown> } {
+  const formattedContext: Record<string, unknown> = {
+    service: context?.service || process.env.SERVICE_NAME || 'owntube-api',
+  };
+
+  if (context?.requestId) {
+    formattedContext.requestId = context.requestId;
+  }
+
+  if (context?.userId) {
+    formattedContext.userId = context.userId;
+  }
+
+  if (context?.traceId) {
+    formattedContext.traceId = context.traceId;
+  }
+
+  if (context?.file) {
+    formattedContext.file = context.file;
+  }
+
+  if (context?.line) {
+    formattedContext.line = context.line;
+  }
+
+  return { message, context: formattedContext };
+}
+
+export const log = {
+  error(
+    message: string,
+    error?: Error | unknown,
+    context?: Partial<LogContext>
+  ): void {
+    const { message: formattedMessage, context: formattedContext } = formatMessage(
+      message,
+      context as LogContext | undefined
+    );
+
+    if (error instanceof Error) {
+      pinoLogger.error({
+        ...formattedContext,
+        error: {
+          message: error.message,
+          name: error.name,
+          stack: error.stack,
+        },
+      }, formattedMessage);
+    } else if (error) {
+      pinoLogger.error({ ...formattedContext, error }, formattedMessage);
+    } else {
+      pinoLogger.error(formattedContext, formattedMessage);
+    }
+  },
+
+  warn(
+    message: string,
+    context?: Partial<LogContext>
+  ): void {
+    const { message: formattedMessage, context: formattedContext } = formatMessage(
+      message,
+      context as LogContext | undefined
+    );
+    pinoLogger.warn(formattedContext, formattedMessage);
+  },
+
+  info(
+    message: string,
+    context?: Partial<LogContext>
+  ): void {
+    const { message: formattedMessage, context: formattedContext } = formatMessage(
+      message,
+      context as LogContext | undefined
+    );
+    pinoLogger.info(formattedContext, formattedMessage);
+  },
+
+  debug(
+    message: string,
+    context?: Partial<LogContext>
+  ): void {
+    const { message: formattedMessage, context: formattedContext } = formatMessage(
+      message,
+      context as LogContext | undefined
+    );
+    pinoLogger.debug(formattedContext, formattedMessage);
+  },
+
+  child(bindings: Record<string, unknown>): pino.Logger {
+    return pinoLogger.child(bindings);
+  },
 };
+
+export function createRequestLogger(requestId: string, userId?: string, traceId?: string) {
+  return {
+    error: (message: string, error?: Error | unknown, extra?: Record<string, unknown>) => {
+      const ctx = { requestId, userId, traceId, ...extra };
+      if (error instanceof Error) {
+        log.error(message, error, ctx);
+      } else {
+        log.error(message, error as Error | undefined, ctx);
+      }
+    },
+    warn: (message: string, extra?: Record<string, unknown>) => {
+      log.warn(message, { requestId, userId, traceId, ...extra });
+    },
+    info: (message: string, extra?: Record<string, unknown>) => {
+      log.info(message, { requestId, userId, traceId, ...extra });
+    },
+    debug: (message: string, extra?: Record<string, unknown>) => {
+      log.debug(message, { requestId, userId, traceId, ...extra });
+    },
+  };
+}
+
+export type RequestLogger = ReturnType<typeof createRequestLogger>;
+
+/** Structured app logger (alias of `log` for legacy imports) */
+export const logger = log;

@@ -7,6 +7,13 @@ export default withAuth(
     const token = req.nextauth.token;
     const role = token?.role as string | undefined;
 
+    const requestId = req.headers.get("x-request-id") || crypto.randomUUID();
+    const traceId = req.headers.get("x-trace-id") || crypto.randomUUID();
+
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-request-id", requestId);
+    requestHeaders.set("x-trace-id", traceId);
+
     if (pathname.startsWith("/admin") && role !== "admin") {
       return NextResponse.redirect(new URL("/auth/signin", req.url));
     }
@@ -15,14 +22,21 @@ export default withAuth(
       return NextResponse.json({ error: "غير مصرح" }, { status: 403 });
     }
 
-    return NextResponse.next();
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("x-trace-id", traceId);
+
+    if (process.env.NODE_ENV === "development") {
+      response.headers.set("Access-Control-Allow-Origin", "*");
+    }
+
+    return response;
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
 
-        // Public routes
         const publicPaths = [
           "/auth/signin",
           "/api/auth",
@@ -30,6 +44,8 @@ export default withAuth(
           "/api/videos",
           "/api/search",
           "/api/recommendations",
+          "/api/health",
+          "/api/metrics",
           "/",
           "/video",
           "/trending",
@@ -41,8 +57,6 @@ export default withAuth(
         ];
 
         if (publicPaths.some((p) => pathname.startsWith(p))) return true;
-
-        if (pathname.startsWith("/api/health")) return true;
 
         return !!token;
       },

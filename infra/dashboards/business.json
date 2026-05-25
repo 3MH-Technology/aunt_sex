@@ -1,0 +1,94 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "Business Economy",
+  "uid": "business-economy",
+  "tags": ["owntube", "economy"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "title": "Revenue by Gateway",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(payment_webhook_processed_total{status=\"success\"}[1h])",
+          "legendFormat": "{{gateway}} - {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "req/h" }
+      }
+    },
+    {
+      "title": "Coins Purchased/hour",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(coingate_operations_total{reason=\"COIN_PURCHASE\",status=\"success\"}[1h])",
+          "legendFormat": "purchases"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" }
+      }
+    },
+    {
+      "title": "Coin Velocity (Spend Rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(coingate_operations_total{operation=\"deduct\",status=\"success\"}[1h])",
+          "legendFormat": "spends"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "tx/h" }
+      }
+    },
+    {
+      "title": "Platform Fees Captured",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(coingate_operations_total{operation=\"credit\",reason=\"PLATFORM_FEE\"}[1h])",
+          "legendFormat": "fees"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "fee/h" }
+      }
+    },
+    {
+      "title": "DAU with Coin Activity",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        {
+          "expr": "count(count by (userId) (rate(coingate_operations_total[24h]) > 0))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none" }
+      }
+    },
+    {
+      "title": "Total Coins in Circulation",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 12 },
+      "targets": [
+        {
+          "expr": "coins_circulation_total"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none" }
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, Upload, Film, Heart } from "lucide-react";
+import { Home, Upload, Film, Heart, Shield, Users } from "lucide-react";
 
 export default function AdminSidebar() {
   return (
@@ -19,6 +19,12 @@ export default function AdminSidebar() {
         </Link>
         <Link href="/admin/videos" className="nav-link">
           <Film className="w-5 h-5" /> كل الفيديوهات
+        </Link>
+        <Link href="/admin/users" className="nav-link">
+          <Users className="w-5 h-5" /> المستخدمين
+        </Link>
+        <Link href="/admin/fraud" className="nav-link">
+          <Shield className="w-5 h-5" /> مكافحة الاحتيال
         </Link>
       </nav>
     </aside>

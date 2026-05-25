@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import VideoGrid from "@/components/video/VideoGrid";
-import { searchVideos } from "@/lib/api";
+
 
 export default function SearchVideoGrid({ query }: { query: string }) {
   const [videos, setVideos] = useState<any[]>([]);
@@ -10,8 +10,11 @@ export default function SearchVideoGrid({ query }: { query: string }) {
   const fetchVideos = useCallback(async () => {
     if (!query) return;
     setLoading(true);
-    const results = await searchVideos(query);
-    setVideos(results);
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    if (res.ok) {
+      const data = await res.json();
+      setVideos(data.videos || []);
+    }
     setLoading(false);
   }, [query]);
 

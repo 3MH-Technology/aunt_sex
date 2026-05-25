@@ -1,0 +1,145 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.owntube.internal:587'
+  smtp_from: 'alerts@owntube.internal'
+  smtp_auth_username: 'alerts'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+
+templates:
+  - '/etc/alertmanager/template/*.tmpl'
+
+route:
+  receiver: 'default-receiver'
+  group_by: ['alertname', 'severity', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  matchers:
+    - severity=~"critical|high"
+
+  routes:
+    # Critical alerts - page on-call via PagerDuty
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 10s
+      repeat_interval: 1h
+      continue: true
+
+    # High severity alerts - Slack #alerts-high
+    - match:
+        severity: high
+      receiver: 'slack-alerts-high'
+      group_wait: 30s
+      repeat_interval: 2h
+
+    # Medium severity - Slack #alerts-medium
+    - match:
+        severity: medium
+      receiver: 'slack-alerts-medium'
+      group_wait: 1m
+      repeat_interval: 4h
+
+    # Info - dashboard only, no notification
+    - match:
+        severity: info
+      receiver: 'null'
+      group_wait: 5m
+      repeat_interval: 8h
+
+# On-call routing by service
+receivers:
+  - name: 'default-receiver'
+    slack_configs:
+      - channel: '#alerts-general'
+        send_resolved: true
+        title: ' OwnTube Alert'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Labels.alertname }}*
+          Severity: {{ .Labels.severity }}
+          {{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          <{{ .Annotations.runbook_url }}|Runbook>
+          {{ end }}
+
+  # PagerDuty for critical issues
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        severity: critical
+        incident_key: '{{ .GroupLabels.alertname }}-{{ .CommonLabels.instance }}'
+        description: '{{ .GroupLabels.alertname }} - {{ .Annotations.summary }}'
+        details:
+          summary: '{{ .Annotations.summary }}'
+          description: '{{ .Annotations.description }}'
+          runbook: '{{ .Annotations.runbook_url }}'
+          severity: '{{ .Labels.severity }}'
+          service: '{{ .Labels.service }}'
+          team: '{{ .Labels.team }}'
+          labels: '{{ .Labels }}'
+          annotations: '{{ .Annotations }}'
+        event_action: 'trigger'
+        send_resolved: true
+
+  # Slack for high priority
+  - name: 'slack-alerts-high'
+    slack_configs:
+      - channel: '#alerts-high'
+        send_resolved: true
+        title: ':rotating_light: Critical Alert'
+        title_link: 'https://grafana.owntube.internal/alerts'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Labels.alertname }}*
+          Service: {{ .Labels.service }} | Team: {{ .Labels.team }}
+          {{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          <{{ .Annotations.runbook_url }}|Runbook>
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        footer: 'OwnTube Alert Manager'
+        footer_icon: 'https://grafana.owntube.internal/public/img/grafana_icon.svg'
+        ts: '{{ .StartsAt.Unix }}'
+
+  # Slack for medium priority
+  - name: 'slack-alerts-medium'
+    slack_configs:
+      - channel: '#alerts-medium'
+        send_resolved: true
+        title: ':warning: Warning Alert'
+        title_link: 'https://grafana.owntube.internal/alerts'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Labels.alertname }}*
+          Service: {{ .Labels.service }}
+          {{ .Annotations.summary }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+        footer: 'OwnTube Alert Manager'
+
+  # Null receiver for info alerts
+  - name: 'null'
+    # No-op receiver, alerts go to dashboard only
+
+inhibit_rules:
+  # Suppress duplicate alerts from same service/instance
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'high'
+    equal: ['alertname', 'service', 'instance']
+
+  # Suppress info alerts when critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'info'
+    equal: ['service']
+
+  # Suppress high alerts when critical is firing for same service
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'high'
+    equal: ['service', 'alertname']

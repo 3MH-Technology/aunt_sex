@@ -1,0 +1,114 @@
+groups:
+  - name: coingate
+    rules:
+      - alert: CoinGateBalanceDrift
+        expr: abs(coingate_balance_drift) > 0
+        for: 1m
+        labels:
+          severity: critical
+          page: on-call
+        annotations:
+          summary: "CoinGate balance drift detected for user {{ $labels.userId }}"
+          description: "Expected and actual balances differ by {{ $value }}. Immediate investigation required."
+
+      - alert: CoinGateHighErrorRate
+        expr: |
+          rate(coingate_operations_total{status!="success"}[2m])
+          /
+          rate(coingate_operations_total[2m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          page: on-call
+        annotations:
+          summary: "CoinGate error rate exceeds 5%"
+          description: "Current error rate: {{ $value | humanizePercentage }}. Service may be degrading."
+
+      - alert: PaymentWebhookFailure
+        expr: rate(payment_webhook_processed_total{status="failed"}[1m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          page: on-call
+        annotations:
+          summary: "Payment webhook failure rate > 0.1/s"
+          description: "Gateway {{ $labels.gateway }} is failing. Revenue impact possible."
+
+      - alert: CronJobFailed
+        expr: time() - cron_job_duration_ms_created{job=~"analyze-gifts|check-reversals|maintenance"} > 3600
+        for: 1m
+        labels:
+          severity: critical
+          page: on-call
+        annotations:
+          summary: "Cron job {{ $labels.job }} has not run in the last hour"
+          description: "Scheduled task {{ $labels.job }} may be stuck or crashed."
+
+  - name: fraud
+    rules:
+      - alert: FraudSignalsSpike
+        expr: rate(fraud_signals_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: high
+          channel: slack
+        annotations:
+          summary: "Fraud signal rate exceeds 10/min"
+          description: "Current rate: {{ $value | humanize }} signals/minute. Possible coordinated attack."
+
+      - alert: InsufficientFundsSpike
+        expr: rate(coingate_insufficient_funds_total[3m]) > 5
+        for: 3m
+        labels:
+          severity: high
+          channel: slack
+        annotations:
+          summary: "Insufficient fund errors spike > 5/min"
+          description: "Rate: {{ $value | humanize }}/min. Users may be experiencing issues."
+
+      - alert: HighTransactionRetries
+        expr: rate(coingate_duplicate_tx_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: high
+          channel: slack
+        annotations:
+          summary: "High idempotency key replay rate"
+          description: "Retry rate: {{ $value | humanize }}/s. Possible client retry storm."
+
+      - alert: FraudReviewQueueDepth
+        expr: fraud_signals_total - fraud_signals_total{reviewed="true"} offset 1h > 50
+        for: 5m
+        labels:
+          severity: high
+          channel: slack
+        annotations:
+          summary: "Fraud review queue exceeds 50 unreviewed signals"
+          description: "Unreviewed signals: {{ $value }}. Admin attention required."
+
+  - name: economy
+    rules:
+      - alert: DailyCoinCirculationChange
+        expr: |
+          abs(
+            delta(coins_circulation_total[24h])
+            /
+            coins_circulation_total offset 24h
+          ) > 0.02 * stddev_over_time(coins_circulation_total[7d])
+        for: 5m
+        labels:
+          severity: info
+          channel: dashboard-only
+        annotations:
+          summary: "Daily coin circulation change exceeds 2 standard deviations"
+          description: "Current circulation: {{ $value | humanize }} coins. Investigate if unexpected."
+
+      - alert: NewDeviceFingerprintCluster
+        expr: rate(fraud_signals_total{type="MULTI_ACCOUNT_DETECTED"}[1h]) > 10
+        for: 5m
+        labels:
+          severity: info
+          channel: dashboard-only
+        annotations:
+          summary: "More than 10 accounts sharing the same fingerprint detected"
+          description: "Possible bulk account creation attack."

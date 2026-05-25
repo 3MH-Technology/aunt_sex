@@ -1,23 +1,26 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Cairo } from "next/font/google";
 import "@/styles/globals.css";
 import { ThemeProvider } from "next-themes";
 import SessionProvider from "@/components/layout/SessionProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const cairo = Cairo({ 
+  subsets: ["arabic", "latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"]
+});
 
 export const metadata: Metadata = {
-  title: "Aunt sex - موقع سكس عربي | أفلام إباحية عربية حصرية",
-  description: "Aunt sex - أكبر موقع سكس عربي مجاني. شاهد أفضل أفلام الإباحة العربية والعالمية حصرياً. سكس عربي, نيك, طيز, كس, بزاز - كل ما تبحث عنه في مكان واحد.",
-  keywords: "سكس, سكس عربي, أفلام إباحية, نيك, طيز, كس, بزاز, سكس مصري, سكس خليجي, سكس عربي مجاني, porn arabic, adult, xxx",
+  title: "Aunt Sex — سكس عربي ومصري | نيك وشرموطات",
+  description: "سكس عربي، نيك مصري، محارم، شرموطات، طيز وكس — بث مباشر ومجاني. ادخل يا وحش واتفرج على راحتك.",
+  keywords: "سكس, سكس مصري, نيك, شرموطة, طيز, كس, زبر, محارم, سحاق, سكس عربي, بث مباشر",
   robots: "index, follow",
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",
   },
   openGraph: {
-    title: "Aunt sex - موقع سكس عربي | أفلام إباحية عربية حصرية",
-    description: "أكبر موقع سكس عربي مجاني. شاهد أفضل أفلام الإباحة العربية والعالمية.",
+    title: "Aunt Sex — سكس عربي ومصري",
+    description: "نيك، شرموطات، ومحارم — كل حاجة تفرك عليها في مكان واحد.",
     images: ["/logo.png"],
     type: "website",
     locale: "ar_AR",
@@ -35,7 +38,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#0A0A0B" />
         <meta name="color-scheme" content="dark" />
       </head>
-      <body className={inter.className}>
+      <body className={cairo.className}>
         <ThemeProvider attribute="class" forcedTheme="dark">
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>

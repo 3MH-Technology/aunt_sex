@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+infra
+server.log
+image.png
+*.log
+Dockerfile
+docker-compose*

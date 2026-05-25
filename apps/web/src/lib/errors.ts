@@ -33,3 +33,9 @@ export class ValidationError extends ServiceError {
     super("VALIDATION_ERROR", message, 422, details);
   }
 }
+
+export class InsufficientCoinsError extends ServiceError {
+  constructor(balance: number, required: number) {
+    super("INSUFFICIENT_COINS", `رصيد غير كافٍ. لديك ${balance} وتحتاج ${required}`, 402, { balance, required });
+  }
+}

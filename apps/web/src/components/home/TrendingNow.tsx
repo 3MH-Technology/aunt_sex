@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 
 export default async function TrendingNow() {
   const videos = await db.video.findMany({
+    where: { status: "APPROVED" },
     orderBy: { views: "desc" },
     take: 12,
     include: {

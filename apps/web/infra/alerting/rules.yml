@@ -1,0 +1,219 @@
+groups:
+  # =============================================================================
+  # CRITICAL ALERTS - Page on-call immediately
+  # =============================================================================
+  - name: coingate_critical
+    interval: 30s
+    rules:
+      - alert: CoinGateBalanceDrift
+        expr: abs(coingate_balance_drift) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          service: coingate
+        annotations:
+          summary: "CoinGate balance drift detected"
+          description: "User {{ $labels.userId }} has balance drift of {{ $value }} (should be 0). Possible accounting error."
+          runbook_url: "https://runbooks.owntube.internal/coingate/balance-drift"
+
+      - alert: CoinGateHighErrorRate
+        expr: |
+          (
+            sum(rate(coingate_operations_total{status="error"}[2m])) /
+            sum(rate(coingate_operations_total[2m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          service: coingate
+        annotations:
+          summary: "CoinGate error rate exceeds 5%"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 2 minutes."
+          runbook_url: "https://runbooks.owntube.internal/coingate/high-error-rate"
+
+      - alert: PaymentWebhookFailure
+        expr: |
+          sum(rate(payment_webhook_processed_total{status="error"}[1m])) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          team: payments
+          service: payment-webhooks
+        annotations:
+          summary: "Payment webhook failure rate exceeds 0.1/sec"
+          description: "Payment gateway webhook failures are occurring at {{ $value | humanize }} per second."
+          runbook_url: "https://runbooks.owntube.internal/payments/webhook-failures"
+
+      - alert: CronJobFailed
+        expr: |
+          (
+            sum(rate(cron_job_duration_ms_count{status="failed"}[1h])) > 0
+          ) or (
+            sum(increase(cron_job_duration_ms_count{status="failed"}[1h])) > 0
+          )
+        for: 0m
+        labels:
+          severity: critical
+          team: platform
+          service: cron
+        annotations:
+          summary: "Cron job failed in the last hour"
+          description: "At least one cron job has failed. Check job {{ $labels.job }}."
+          runbook_url: "https://runbooks.owntube.internal/cron/job-failures"
+
+  # =============================================================================
+  # HIGH PRIORITY ALERTS - Notify Slack #alerts-high
+  # =============================================================================
+  - name: fraud_high
+    interval: 1m
+    rules:
+      - alert: FraudSignalsSpike
+        expr: |
+          sum(rate(fraud_signals_total[1m])) > 10
+        for: 5m
+        labels:
+          severity: high
+          team: security
+          service: fraud-detection
+        annotations:
+          summary: "Fraud signals spike detected"
+          description: "Fraud detection is seeing > 10 signals/minute for the last 5 minutes. Current rate: {{ $value | humanize }}/min"
+          runbook_url: "https://runbooks.owntube.internal/fraud/signals-spike"
+
+      - alert: InsufficientFundsSpike
+        expr: |
+          sum(rate(coingate_insufficient_funds_total[1m])) > 5
+        for: 3m
+        labels:
+          severity: high
+          team: platform
+          service: coingate
+        annotations:
+          summary: "Insufficient funds spike detected"
+          description: "More than 5 insufficient funds errors per minute for 3+ minutes. May indicate price changes or abuse."
+          runbook_url: "https://runbooks.owntube.internal/coingate/insufficient-funds"
+
+      - alert: HighTransactionRetries
+        expr: |
+          sum(rate(coingate_operations_total{status="retry"}[1m])) > 1
+        for: 5m
+        labels:
+          severity: high
+          team: platform
+          service: coingate
+        annotations:
+          summary: "High transaction retry rate"
+          description: "Transaction retries exceeding 1/second for 5+ minutes. Check Redis connectivity and database performance."
+          runbook_url: "https://runbooks.owntube.internal/coingate/high-retries"
+
+      - alert: FraudReviewQueueDepth
+        expr: |
+          fraud_holds_active > 50
+        for: 10m
+        labels:
+          severity: high
+          team: security
+          service: fraud-detection
+        annotations:
+          summary: "Fraud review queue is backed up"
+          description: "{{ $value }} unreviewed fraud signals in the queue. Consider adding more reviewers."
+          runbook_url: "https://runbooks.owntube.internal/fraud/review-queue"
+
+      - alert: FraudDetectionLatencyHigh
+        expr: |
+          histogram_quantile(0.95, rate(fraud_detection_latency_ms_bucket[5m])) > 500
+        for: 5m
+        labels:
+          severity: high
+          team: security
+          service: fraud-detection
+        annotations:
+          summary: "Fraud detection latency is high"
+          description: "P95 fraud detection latency is {{ $value }}ms, exceeding 500ms threshold."
+          runbook_url: "https://runbooks.owntube.internal/fraud/high-latency"
+
+  # =============================================================================
+  # MEDIUM PRIORITY ALERTS - Log and dashboard
+  # =============================================================================
+  - name: coingate_medium
+    interval: 5m
+    rules:
+      - alert: CoinGateLatencyDegradation
+        expr: |
+          histogram_quantile(0.95, rate(coingate_operation_duration_ms_bucket[10m])) > 500
+        for: 10m
+        labels:
+          severity: medium
+          team: platform
+          service: coingate
+        annotations:
+          summary: "CoinGate operation latency degraded"
+          description: "P95 latency for CoinGate operations is {{ $value }}ms."
+          runbook_url: "https://runbooks.owntube.internal/coingate/latency"
+
+      - alert: DuplicateTransactionSpike
+        expr: |
+          sum(rate(coingate_duplicate_tx_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: medium
+          team: platform
+          service: coingate
+        annotations:
+          summary: "High duplicate transaction rate"
+          description: "Duplicate transaction rejections at {{ $value }}/min. May indicate client-side bugs or replay attacks."
+          runbook_url: "https://runbooks.owntube.internal/coingate/duplicates"
+
+  # =============================================================================
+  # INFO/LOW PRIORITY - Dashboard only
+  # =============================================================================
+  - name: business_info
+    interval: 15m
+    rules:
+      - alert: DailyCoinCirculationChange
+        expr: |
+          abs(
+            coins_circulation_total - coins_circulation_total offset 24h
+          ) / (coins_circulation_total offset 24h) > 0.02
+        for: 0m
+        labels:
+          severity: info
+          team: business
+          service: economy
+        annotations:
+          summary: "Significant daily coin circulation change"
+          description: "Coin circulation changed by {{ $value | humanizePercentage }} in the last 24h. Normal variance is <2%."
+          runbook_url: "https://runbooks.owntube.internal/economy/circulation-change"
+
+      - alert: NewDeviceFingerprintCluster
+        expr: |
+          count(count by (fingerprint) (rate(fraud_signals_total{type="new_device"}[1h]))) > 10
+        for: 0m
+        labels:
+          severity: info
+          team: security
+          service: fraud-detection
+        annotations:
+          summary: "Unusual device fingerprint clustering"
+          description: "More than 10 accounts share the same device fingerprint in the last hour. Investigate potential coordinated fraud."
+          runbook_url: "https://runbooks.owntube.internal/fraud/device-fingerprint"
+
+      - alert: PaymentGatewayUnbalanced
+        expr: |
+          (
+            sum(rate(payment_webhook_processed_total{gateway="stripe", status="success"}[1h])) -
+            sum(rate(payment_webhook_processed_total{gateway="maxelpay", status="success"}[1h]))
+          ) / (
+            sum(rate(payment_webhook_processed_total{status="success"}[1h]))
+          ) > 0.8 or < 0.2
+        for: 1h
+        labels:
+          severity: info
+          team: business
+          service: payments
+        annotations:
+          summary: "Payment gateway usage imbalance"
+          description: "One payment gateway is handling >80% of transactions. Review gateway health and pricing."
+          runbook_url: "https://runbooks.owntube.internal/payments/gateway-imbalance"

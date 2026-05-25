@@ -3,14 +3,16 @@ import { Film, Users, DollarSign, TrendingUp } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const [videoCount, userCount, viewCount, channelCount] = await Promise.all([
+  const [videoCount, userCount, viewCount, channelCount, revenueAgg] = await Promise.all([
     db.video.count(),
     db.user.count(),
     db.video.aggregate({ _sum: { views: true } }),
     db.channel.count(),
+    db.coinPurchase.aggregate({ _sum: { amount: true } }),
   ]);
 
   const totalViews = viewCount._sum.views || 0;
+  const totalRevenue = revenueAgg._sum.amount || 0;
 
   return (
     <div>
@@ -52,7 +54,7 @@ export default async function AdminDashboard() {
             </div>
             <h2 className="text-gray-400 text-sm">الإيرادات</h2>
           </div>
-          <p className="text-3xl font-bold">$ --</p>
+          <p className="text-3xl font-bold">${totalRevenue.toFixed(2)}</p>
         </div>
       </div>
     </div>

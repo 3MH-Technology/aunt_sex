@@ -16,11 +16,10 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (isLoading) return;
-    fetch(`/api/videos`)
+    fetch(`/api/videos/${params.id}`)
       .then((r) => r.json())
-      .then((videos: any[]) => {
-        const video = videos.find((v) => v.id === params.id);
-        if (video) {
+      .then((video) => {
+        if (video && !video.error) {
           setTitle(video.title);
           setDescription(video.description);
           setTags((JSON.parse(video.tags) as string[]).join(", "));

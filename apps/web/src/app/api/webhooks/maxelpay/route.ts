@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { createHmac, timingSafeEqual } from "crypto";
-import { SubscriptionPlan } from "@prisma/client";
+import { SubscriptionPlan, Prisma, CoinLedgerReason } from "@prisma/client";
+import { creditCoins } from "@/lib/coingate";
 
 const WEBHOOK_SECRET = process.env.MAXELPAY_WEBHOOK_SECRET;
 
@@ -21,17 +22,11 @@ function verifySignature(body: string, signature: string): boolean {
   }
 }
 
-/**
- * Parses orderId and returns the type and IDs.
- *
- * Formats:
- *   Subscription: order_{userId}_{timestamp}
- *   Coin purchase: order_coin_{userId}_{packageId}_{timestamp}
- */
 function parseOrderId(orderId: string): {
   type: "subscription" | "coins";
   userId: string;
   packageId?: string;
+  planKey?: string;
 } | null {
   if (!orderId.startsWith("order_")) return null;
   const parts = orderId.split("_");
@@ -45,15 +40,21 @@ function parseOrderId(orderId: string): {
     };
   }
 
-  if (parts.length >= 3) {
+  if (parts.length >= 4) {
     return {
       type: "subscription",
       userId: parts[1],
+      planKey: parts[2],
     };
   }
 
   return null;
 }
+
+const PLAN_FROM_KEY: Record<string, { plan: SubscriptionPlan; days: number }> = {
+  monthly: { plan: "vip_monthly", days: 30 },
+  yearly: { plan: "vip_yearly", days: 365 },
+};
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -65,15 +66,6 @@ export async function POST(req: Request) {
       ip: req.headers.get("x-forwarded-for") || "unknown",
     });
     return NextResponse.json({ error: "توقيع غير صالح" }, { status: 401 });
-  }
-
-  if (eventId) {
-    const processed = await db.processedWebhook.findUnique({
-      where: { eventId },
-    });
-    if (processed) {
-      return NextResponse.json({ received: true, deduplicated: true });
-    }
   }
 
   let payload: { event: string; data?: Record<string, unknown> };
@@ -94,62 +86,74 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true });
     }
 
-    if (eventId) {
-      await db.processedWebhook.create({
-        data: { eventId, orderId, processedAt: new Date() },
-      }).catch(() => {});
-    }
+    try {
+      await db.$transaction(async (tx) => {
+        if (eventId) {
+          await tx.processedWebhook.create({
+            data: { eventId, orderId, processedAt: new Date() },
+          });
+        }
 
-    if (parsed.type === "subscription") {
-      const plan = (data.plan as string) || "vip_monthly";
-      let durationDays = 30;
-      if (plan === "vip_yearly") durationDays = 365;
-      const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+        if (parsed.type === "subscription") {
+          const planInfo = PLAN_FROM_KEY[parsed.planKey || ""] || PLAN_FROM_KEY.monthly;
+          const expiresAt = new Date(Date.now() + planInfo.days * 24 * 60 * 60 * 1000);
 
-      await db.subscription.upsert({
-        where: { userId: parsed.userId },
-        update: { plan: plan as SubscriptionPlan, expiresAt },
-        create: { userId: parsed.userId, plan: plan as SubscriptionPlan, expiresAt },
-      });
+          await tx.subscription.upsert({
+            where: { userId: parsed.userId },
+            update: { plan: planInfo.plan, expiresAt },
+            create: { userId: parsed.userId, plan: planInfo.plan, expiresAt },
+          });
 
-      logger.info("Subscription activated via webhook", {
-        userId: parsed.userId,
-        orderId,
-        plan,
-      });
-    }
-
-    if (parsed.type === "coins" && parsed.packageId) {
-      const pkg = await db.coinPackage.findUnique({
-        where: { id: parsed.packageId },
-      });
-
-      if (pkg) {
-        await db.coinPurchase.create({
-          data: {
+          logger.info("Subscription activated via webhook", {
             userId: parsed.userId,
-            packageId: parsed.packageId,
-            coins: pkg.coins,
-            amount: pkg.price,
-          },
-        });
+            orderId,
+            plan: planInfo.plan,
+          });
+        }
 
-        await db.user.update({
-          where: { id: parsed.userId },
-          data: { coins: { increment: pkg.coins } },
-        });
+        if (parsed.type === "coins" && parsed.packageId) {
+          const pkg = await tx.coinPackage.findUnique({
+            where: { id: parsed.packageId },
+          });
 
-        logger.info("Coins credited via webhook", {
-          userId: parsed.userId,
-          coins: pkg.coins,
-          orderId,
-        });
-      } else {
-        logger.warn("Coin package not found", {
-          packageId: parsed.packageId,
-          orderId,
-        });
+          if (pkg) {
+            await tx.coinPurchase.create({
+              data: {
+                userId: parsed.userId,
+                packageId: parsed.packageId,
+                coins: pkg.coins,
+                amount: pkg.price,
+              },
+            });
+
+            await creditCoins(
+              tx,
+              parsed.userId,
+              pkg.coins,
+              CoinLedgerReason.COIN_PURCHASE,
+              orderId,
+              { packageId: parsed.packageId, packageName: pkg.name }
+            );
+
+            logger.info("Coins credited via webhook", {
+              userId: parsed.userId,
+              coins: pkg.coins,
+              orderId,
+            });
+          } else {
+            logger.warn("Coin package not found", {
+              packageId: parsed.packageId,
+              orderId,
+            });
+          }
+        }
+      }, { isolationLevel: "ReadCommitted" });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        logger.info("Duplicate webhook event, skipped", { eventId, orderId });
+        return NextResponse.json({ received: true, deduplicated: true });
       }
+      throw error;
     }
   }
 

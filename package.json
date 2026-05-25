@@ -1,9 +1,15 @@
 {
   "name": "aunt-sex",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "turbo dev",
-    "build": "turbo build",
+    "build": "npm run build:worker && npm run build:web",
+    "build:web": "npm run build --workspace=web",
+    "build:worker": "npm run build --workspace=worker",
     "start": "turbo start",
     "lint": "turbo lint"
   },

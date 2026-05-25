@@ -19,7 +19,7 @@ export default async function ChannelsPage() {
           </div>
           <h1 className="text-2xl font-bold mb-3">لا توجد قنوات بعد</h1>
           <p className="text-gray-400 mb-8">
-            لم يتم إنشاء أي قنوات إباحية بعد. سجل وكن أول من ينشئ قناة!
+            مفيش قنوات سكس للحين. سجّل واعمل أول قناة شرموطة!
           </p>
           <Link
             href="/auth/signin"
@@ -35,8 +35,8 @@ export default async function ChannelsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2 flex items-center gap-2"><Heart className="w-6 h-6 text-brand-accent" /> القنوات الإباحية</h1>
-      <p className="text-gray-500 text-sm mb-6">تصفح أفضل القنوات والمبدعين في العالم العربي</p>
+      <h1 className="text-2xl font-bold mb-2 flex items-center gap-2"><Heart className="w-6 h-6 text-brand-accent" /> قنوات الشرموطات</h1>
+      <p className="text-gray-500 text-sm mb-6">أحلى قنوات سكس ونيك مصري وعربي</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {channels.map((channel: { id: string; name: string; avatar: string; _count: { videos: number } }) => (
           <Link

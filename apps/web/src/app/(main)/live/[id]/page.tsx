@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Eye, X, Send, Gift, Camera, Mic, MicOff, Video, VideoOff, User, MessageCircle } from "lucide-react";
+import { Radio, Eye, X, Send, Gift, Camera, Mic, MicOff, Video, VideoOff, User, MessageCircle, Heart } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -20,17 +20,9 @@ interface GiftType {
   price: number;
 }
 
-const LABEL_COLORS: Record<string, string> = {
-  "فحل": "bg-green-600/30 text-green-400 border-green-500/30",
-  "سالب": "bg-pink-600/30 text-pink-400 border-pink-500/30",
-  "ديوث": "bg-yellow-600/30 text-yellow-400 border-yellow-500/30",
-  "عمة": "bg-purple-600/30 text-purple-400 border-purple-500/30",
-  "كلب": "bg-orange-600/30 text-orange-400 border-orange-500/30",
-  "شرموطة": "bg-red-600/30 text-red-400 border-red-500/30",
-  "قحبة": "bg-red-700/30 text-red-300 border-red-500/30",
-};
+import { USER_LABEL_COLORS } from "@/config/user-labels";
 
-const ADULT_LABEL_COLORS: Record<string, string> = LABEL_COLORS;
+const ADULT_LABEL_COLORS = USER_LABEL_COLORS;
 
 export default function LiveStreamPage({ params }: { params: { id: string } }) {
   const { user: currentUser, isAuthenticated } = useAuth();
@@ -48,6 +40,7 @@ export default function LiveStreamPage({ params }: { params: { id: string } }) {
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -112,14 +105,22 @@ export default function LiveStreamPage({ params }: { params: { id: string } }) {
 
   const startBroadcast = async () => {
     try {
+      setCameraError(null);
       const ms = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(ms);
       if (videoRef.current) videoRef.current.srcObject = ms;
       setVideoEnabled(true);
       setAudioEnabled(true);
       setIsBroadcasting(true);
-    } catch (e) {
-      console.error("Camera access denied", e);
+    } catch (e: any) {
+      const msg = e.name === "NotAllowedError" || e.name === "PermissionDeniedError"
+        ? "تم رفض إذن الكاميرا. يرجى السماح في إعدادات المتصفح."
+        : e.name === "NotFoundError"
+        ? "لم يتم العثور على كاميرا."
+        : e.name === "NotReadableError"
+        ? "الكاميرا مستخدمة من قبل تطبيق آخر."
+        : "تعذر الوصول إلى الكاميرا. جرب HTTPS أو تحقق من الإعدادات.";
+      setCameraError(msg);
     }
   };
 
@@ -218,7 +219,10 @@ export default function LiveStreamPage({ params }: { params: { id: string } }) {
               </Link>
             </div>
             {canStream && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
+                {cameraError && (
+                  <div className="text-xs text-red-400 bg-red-500/10 px-3 py-1 rounded-lg border border-red-500/30">{cameraError}</div>
+                )}
                 {!isBroadcasting ? (
                   <button onClick={startBroadcast} className="glow-button flex items-center gap-2 px-4 py-2 text-sm">
                     <Camera className="w-4 h-4" /> بدء البث

@@ -5,22 +5,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Mail, User, Phone, Calendar, Info, Upload, Camera, X } from "lucide-react";
 import Image from "next/image";
 
-const LABEL_OPTIONS = ["فحل", "سالب", "ديوث", "عمة", "كلب", "شرموطة", "قحبة", "مص", "نياك", "جلم", "بزاز", "طيز"];
+import { USER_LABEL_OPTIONS, USER_LABEL_COLORS } from "@/config/user-labels";
 
-const LABEL_COLORS: Record<string, string> = {
-  "فحل": "bg-green-600/30 text-green-400 border-green-500/30",
-  "سالب": "bg-pink-600/30 text-pink-400 border-pink-500/30",
-  "ديوث": "bg-yellow-600/30 text-yellow-400 border-yellow-500/30",
-  "عمة": "bg-purple-600/30 text-purple-400 border-purple-500/30",
-  "كلب": "bg-orange-600/30 text-orange-400 border-orange-500/30",
-  "شرموطة": "bg-red-600/30 text-red-400 border-red-500/30",
-  "قحبة": "bg-red-700/30 text-red-300 border-red-500/30",
-  "مص": "bg-blue-600/30 text-blue-400 border-blue-500/30",
-  "نياك": "bg-teal-600/30 text-teal-400 border-teal-500/30",
-  "جلم": "bg-indigo-600/30 text-indigo-400 border-indigo-500/30",
-  "بزاز": "bg-rose-600/30 text-rose-400 border-rose-500/30",
-  "طيز": "bg-amber-600/30 text-amber-400 border-amber-500/30",
-};
+const LABEL_OPTIONS = [...USER_LABEL_OPTIONS];
+const LABEL_COLORS = USER_LABEL_COLORS;
 
 export default function EditProfilePage() {
   const { user, isLoading, isAuthenticated } = useAuth();

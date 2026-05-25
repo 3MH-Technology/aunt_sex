@@ -20,15 +20,14 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app/apps/web
 RUN apk add --no-cache curl
-COPY --from=builder /app/apps/web/.next ./.next
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./.next/static
 COPY --from=builder /app/apps/web/public ./public
 COPY --from=builder /app/apps/web/prisma ./prisma
 COPY --from=builder /app/apps/web/package.json ./package.json
-COPY --from=builder /app/apps/web/next.config.js ./next.config.js
 COPY --from=deps /app/node_modules /app/node_modules
 COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
-CMD ["sh", "-c", "node /app/node_modules/.bin/next start"]
+CMD ["node", "server.js"]

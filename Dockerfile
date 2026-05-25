@@ -16,7 +16,6 @@ COPY . .
 WORKDIR /app/apps/web
 RUN npx prisma generate
 RUN npm run build
-RUN cp -r .next/static .next/standalone/.next/static
 
 FROM base AS runner
 WORKDIR /app/apps/web
@@ -35,8 +34,11 @@ COPY --from=builder /app/apps/web/prisma ./prisma
 COPY apps/web/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# App files (standalone)
+# App files (standalone + necessary .next artifacts)
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/BUILD_ID ./.next/BUILD_ID
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/server ./.next/server
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
 COPY --from=builder /app/apps/web/public ./public
 
 ENV NODE_ENV=production

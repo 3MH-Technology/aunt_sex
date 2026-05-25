@@ -3,17 +3,13 @@ RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# نسخ ملفات المشروع الأساسية
 COPY package.json package-lock.json* ./
-COPY apps/web/package.json ./apps/web/
+COPY apps/web/package.json apps/web/package-lock.json* ./apps/web/
 
-# تثبيت dependencies (monorepo safe)
-RUN npm install
+RUN npm ci
+RUN cd apps/web && npm ci
 
-# بناء التطبيق
 FROM base AS builder
-WORKDIR /app
-
 COPY . .
 
 WORKDIR /app/apps/web
@@ -21,21 +17,26 @@ WORKDIR /app/apps/web
 RUN npx prisma generate
 RUN npm run build
 
-# Runtime stage (خفيف)
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl libc6-compat curl
 
 WORKDIR /app
 
-RUN apk add --no-cache curl
-
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-# نسخ output فقط (standalone Next.js)
-COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./.next/static
-COPY --from=builder /app/apps/web/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=builder /app/apps/web/.next ./apps/web/.next
+COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
+COPY --from=builder /app/apps/web/prisma ./apps/web/prisma
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/web/next.config.js ./apps/web/next.config.js
+
+WORKDIR /app/apps/web
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "./node_modules/.bin/next start -H 0.0.0.0 -p 3000"]

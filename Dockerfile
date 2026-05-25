@@ -19,17 +19,15 @@ RUN npm run build
 
 FROM base AS runner
 WORKDIR /app/apps/web
-RUN apk add --no-cache curl \
-  && addgroup -S nodejs \
-  && adduser -S nextjs -G nodejs
+RUN apk add --no-cache curl
 COPY --from=builder /app/apps/web/.next ./.next
 COPY --from=builder /app/apps/web/public ./public
 COPY --from=builder /app/apps/web/prisma ./prisma
 COPY --from=builder /app/apps/web/package.json ./package.json
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-USER nextjs
+COPY --from=builder /app/apps/web/next.config.js ./next.config.js
+COPY --from=deps /app/node_modules /app/node_modules
+COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
-CMD ["node_modules/.bin/next", "start"]
+CMD ["node", "/app/node_modules/.bin/next", "start"]

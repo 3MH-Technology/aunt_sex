@@ -300,6 +300,8 @@ export async function checkVelocity(
       'user.age_days': Math.floor((Date.now() - userCreatedAt.getTime()) / 86400000),
     });
 
+    if (!redis) return false;
+
     for (const w of VELOCITY_WINDOWS) {
       const windowKey = `${key}:${w.suffix}`;
       const count = await redis.incr(windowKey);

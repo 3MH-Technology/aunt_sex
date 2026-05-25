@@ -19,6 +19,7 @@ export async function rateLimit(
   const { windowMs, max, message } = { ...defaults, ...config };
   const key = `ratelimit:${identifier}`;
 
+  if (!redis) return { limited: false, remaining: Infinity };
   try {
     const current = await redis.incr(key);
     if (current === 1) {

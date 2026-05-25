@@ -18,8 +18,12 @@ export async function GET() {
   }
 
   try {
-    await redis.ping();
-    checks.redis = "ok";
+    if (redis) {
+      await redis.ping();
+      checks.redis = "ok";
+    } else {
+      checks.redis = "no config";
+    }
   } catch {
     checks.redis = "error";
   }

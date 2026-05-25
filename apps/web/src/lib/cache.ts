@@ -4,6 +4,7 @@ const DEFAULT_TTL = 60;
 
 export const cache = {
   async get(key: string): Promise<string | null> {
+    if (!redis) return null;
     try {
       return await redis.get(key);
     } catch {
@@ -12,18 +13,21 @@ export const cache = {
   },
 
   async set(key: string, value: string, ttl = DEFAULT_TTL): Promise<void> {
+    if (!redis) return;
     try {
       await redis.setex(key, ttl, value);
     } catch {}
   },
 
   async del(key: string): Promise<void> {
+    if (!redis) return;
     try {
       await redis.del(key);
     } catch {}
   },
 
   async delPattern(pattern: string): Promise<void> {
+    if (!redis) return;
     try {
       let cursor = "0";
       do {

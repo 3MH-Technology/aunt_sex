@@ -5,6 +5,9 @@ import { randomUUID } from "crypto";
 import { withAuth, handleError } from "@/lib/api-handler";
 import { ValidationError } from "@/lib/errors";
 
+
+export const dynamic = "force-dynamic";
+
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { withAuth, handleError } from "@/lib/api-handler";
 import { chatService } from "@/services/ChatService";
 
+
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const groups = await chatService.getGroups();

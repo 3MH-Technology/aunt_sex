@@ -5,6 +5,9 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { SubscriptionPlan, Prisma, CoinLedgerReason } from "@prisma/client";
 import { creditCoins } from "@/lib/coingate";
 
+
+export const dynamic = "force-dynamic";
+
 const WEBHOOK_SECRET = process.env.MAXELPAY_WEBHOOK_SECRET;
 
 function verifySignature(body: string, signature: string): boolean {

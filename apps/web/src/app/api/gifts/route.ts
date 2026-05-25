@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { withAuth, handleError } from "@/lib/api-handler";
 import { giftService } from "@/services/GiftService";
 
+
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const types = await giftService.getGiftTypes();

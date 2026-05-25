@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { withAuth, handleError } from "@/lib/api-handler";
 import { paymentService } from "@/services/PaymentService";
 
+
+export const dynamic = "force-dynamic";
+
 export const POST = withAuth(async (req, { userId }) => {
   const { plan, gateway = "maxelpay" } = await req.json();
 

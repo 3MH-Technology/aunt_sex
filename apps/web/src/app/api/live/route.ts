@@ -6,6 +6,9 @@ import { COINS } from "@/config/coingate";
 import { CoinLedgerReason } from "@prisma/client";
 import { randomBytes } from "crypto";
 
+
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const streams = await liveStreamService.getActiveStreams();

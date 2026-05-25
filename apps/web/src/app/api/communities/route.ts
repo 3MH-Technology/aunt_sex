@@ -5,6 +5,9 @@ import { withCoinGate } from "@/lib/coingate";
 import { COINS } from "@/config/coingate";
 import { CoinLedgerReason } from "@prisma/client";
 
+
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const communities = await communityService.getAll();

@@ -7,6 +7,9 @@ import { ValidationError } from "@/lib/errors";
 import { db } from "@/lib/db";
 import { userService } from "@/services/UserService";
 
+
+export const dynamic = "force-dynamic";
+
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 

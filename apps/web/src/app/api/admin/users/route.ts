@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { withAuth, handleError } from "@/lib/api-handler";
 import { db } from "@/lib/db";
 
+
+export const dynamic = "force-dynamic";
+
 export const GET = withAuth(async () => {
   const users = await db.user.findMany({
     orderBy: { createdAt: "desc" },

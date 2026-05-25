@@ -11,6 +11,9 @@ import { withCoinGate } from "@/lib/coingate";
 import { COINS } from "@/config/coingate";
 import { CoinLedgerReason } from "@prisma/client";
 
+
+export const dynamic = "force-dynamic";
+
 const ALLOWED_VIDEO_TYPES = [
   "video/mp4",
   "video/webm",

@@ -3,6 +3,9 @@ import { withAuth, handleError } from "@/lib/api-handler";
 import { userService } from "@/services/UserService";
 import { ValidationError } from "@/lib/errors";
 
+
+export const dynamic = "force-dynamic";
+
 export const POST = withAuth(async (req, { userId }) => {
   const { labels } = await req.json();
   if (!Array.isArray(labels)) {

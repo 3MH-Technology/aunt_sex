@@ -3,6 +3,9 @@ import { authService } from "@/services/AuthService";
 import { rateLimit } from "@/lib/rate-limit";
 import { ValidationError } from "@/lib/errors";
 
+
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const rl = await rateLimit(`signup:${ip}`, { windowMs: 60 * 1000, max: 3 });

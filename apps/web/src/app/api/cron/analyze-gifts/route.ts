@@ -4,6 +4,9 @@ import { handleError } from "@/lib/api-handler";
 import { cronJobDurationMs, cronJobRecordsProcessed, recordCoingateOperation } from "@/lib/metrics";
 import { createRequestLogger } from "@/lib/logger";
 
+
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   const startTime = Date.now();
   const requestLogger = createRequestLogger(

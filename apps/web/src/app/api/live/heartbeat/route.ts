@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { CoinLedgerReason } from "@prisma/client";
 import { deductCoins, creditCoins } from "@/lib/coingate";
 
+
+export const dynamic = "force-dynamic";
+
 const WATCH_COST_PER_MIN = 5;
 const CREATOR_REWARD_PER_10_VIEWERS = 2;
 
